@@ -10,3 +10,6 @@ frontend/.env
 
 # Logs
 backend/logs/
+
+#export .osm.pbf files
+exports/
