@@ -4,7 +4,16 @@ import path from "path";
 
 export function runExport() {
   return new Promise((resolve, reject) => {
-    const jobId = uuidv4();
+    const now = new Date()
+
+    const timestamp = now.toISOString()
+        .replace(/T/, "_")      
+        .replace(/:/g, "-")     
+        .split(".")[0];   
+
+    const shortId = uuidv4().slice(0,8)
+
+    const jobId = `${timestamp}_${shortId}`;
     const outputFile = path.resolve(`../exports/${jobId}.osm.pbf`);
 
     const env = {
