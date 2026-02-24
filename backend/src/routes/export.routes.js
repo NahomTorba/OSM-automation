@@ -3,12 +3,45 @@ import { runExport } from "../services/osmosis.service.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+let activeExportProcess = null;
+
+router.get("/stream", async (req, res) => {
+  if (activeExportProcess) {
+    return res.status(409).json({ error: "An export is already running" });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendEvent = (payload) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  req.on("close", () => {
+    if (activeExportProcess) {
+      activeExportProcess.kill();
+      activeExportProcess = null;
+    }
+    res.end();
+  });
+
   try {
-    const result = await runExport();
-    res.json({ success: true, ...result });
+    const params = req.query;
+
+    const promise = runExport(params, (message, type) => {
+      sendEvent({ type, message });
+    });
+
+    activeExportProcess = promise.childProcess;
+
+    const result = await promise;
+    sendEvent({ type: "done", result });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendEvent({ type: "error", message: err.message });
+  } finally {
+    activeExportProcess = null;
+    res.end();
   }
 });
 

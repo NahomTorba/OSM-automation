@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Logs Stream</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #fff; padding: 20px; }
+        button { padding: 10px 20px; font-size: 16px; margin-bottom: 20px; cursor: pointer; }
+        #logs { background: #000; padding: 15px; height: 400px; overflow-y: auto; border: 1px solid #333; }
+        .stdout { color: white; }
+        .stderr { color: red; }
+        .done { color: green; font-weight: bold; }
+        .error { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Osmosis Export Stream</h1>
+    <button id="startBtn">Start Export</button>
+    <div id="logs"></div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const logsDiv = document.getElementById('logs');
+        let currentEventSource = null;
+
+        function appendLog(message, className) {
+            const span = document.createElement('div');
+            span.className = className;
+            span.textContent = message;
+            logsDiv.appendChild(span);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (currentEventSource) {
+                currentEventSource.close();
+                appendLog('Previous connection closed.', 'done');
+            }
+
+            logsDiv.innerHTML = '';
+            startBtn.disabled = true;
+            appendLog('Connecting to stream...', 'stdout');
+
+            currentEventSource = new EventSource('/exports/stream');
+
+            currentEventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'stdout') {
+                    appendLog(data.message.trim(), 'stdout');
+                } else if (data.type === 'stderr') {
+                    appendLog(data.message.trim(), 'stderr');
+                } else if (data.type === 'done') {
+                    appendLog(`Export completed! Result: ${JSON.stringify(data.result)}`, 'done');
+                    currentEventSource.close();
+                    startBtn.disabled = false;
+                } else if (data.type === 'error') {
+                    appendLog(`Error: ${data.message}`, 'error');
+                    currentEventSource.close();
+                    startBtn.disabled = false;
+                }
+            };
+
+            currentEventSource.onerror = (err) => {
+                appendLog('Connection Error or Stream Ended unexpectedly.', 'error');
+                currentEventSource.close();
+                startBtn.disabled = false;
+            };
+        });
+    </script>
+</body>
+</html>
