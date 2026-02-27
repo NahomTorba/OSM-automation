@@ -13,3 +13,6 @@ backend/logs/
 
 #export .osm.pbf files
 exports/
+
+#the tilemaker config and process resource 
+resources/
