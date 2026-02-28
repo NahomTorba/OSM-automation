@@ -70,13 +70,18 @@ export function runExport(params, onData) {
       // Run tilemaker to conver .osm.pbf file to .mbtiles 
 
       onData("Starting Tilemaker conversion...", "stdout");
-      
+
+      const projectRoot = process.cwd();
+
+      const configPath = path.join(projectRoot, "resources/config-openmaptiles.json");
+      const processPath = path.join(projectRoot, "resources/process-openmaptiles.lua");
+
 
       const tilemakerArgs = [
         "--input", osmOutput,
         "--output", mbtilesOutput,
-        "--config", "resources/config-openmaptiles.json",
-        "--process", "resources/process-openmaptiles.lua"
+        "--config", configPath,
+        "--process", processPath
       ];
 
       const tilemakerProcess = spawn("tilemaker", tilemakerArgs);
