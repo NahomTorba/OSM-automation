@@ -21,8 +21,13 @@ export function runExport(params, onData) {
       fs.mkdirSync(exportsDir, { recursive: true });
     }
 
+    const mbtilesDir = path.resolve(
+      process.cwd(),
+      process.env.MBTILES_DIR || "../exports"
+    );
+
     const osmOutput = path.join(exportsDir, `${jobId}.osm.pbf`);
-    const mbtilesOutput = path.join(exportsDir, `${jobId}.mbtiles`);
+    const mbtilesOutput = path.join(mbtilesDir, `${jobId}.mbtiles`);
 
     const env = {
       ...process.env,
