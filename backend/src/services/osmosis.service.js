@@ -3,6 +3,52 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import fs from "fs";
 
+
+async function updateSymlinkAndRestart(mbtilesPath, onData) {
+  const symlinkPath = process.env.TILE_SYMLINK_PATH;
+  const restartEnabled = process.env.RESTART_TILE_SERVICES === "true";
+  const services = process.env.TILE_SERVICES
+    ? process.env.TILE_SERVICES.split(",").map(s => s.trim())
+    : [];
+
+  //Update the symlink 
+  if (symlinkPath) {
+    try {
+      if (fs.existsSync(symlinkPath)) {
+        fs.unlinkSync(symlinkPath);
+      }
+
+      fs.symlinkSync(mbtilesPath, symlinkPath);
+      onData(`Symlink updated → ${symlinkPath}`, "stdout");
+    } catch (err) {
+      throw new Error(`Symlink update failed: ${err.message}`);
+    }
+  }
+
+  // Restart tile.service and possibly multiple services 
+  if (restartEnabled && services.length > 0) {
+    for (const service of services) {
+      await new Promise((resolve, reject) => {
+        const proc = spawn("sudo", ["systemctl", "restart", service]);
+
+        proc.on("close", (code) => {
+          if (code !== 0) {
+            return reject(
+              new Error(`Failed to restart ${service} (exit code ${code})`)
+            );
+          }
+
+          onData(`${service} restarted successfully.`, "stdout");
+          resolve();
+        });
+
+        proc.on("error", reject);
+      });
+    }
+  }
+  await updateSymlinkAndRestart(mbtilesOutput, onData);
+}
+
 export function runExport(params, onData) {
   let activeChild = null;
 
@@ -107,11 +153,15 @@ export function runExport(params, onData) {
 
         onData("Tilemaker completed successfully.", "stdout");
 
-        resolve({
-          jobId,
-          osmFile: osmOutput,
-          mbtilesFile: mbtilesOutput,
-        });
+        updateSymlinkAndRestart(mbtilesOutput, onData)
+        .then(() => {
+          resolve({
+            jobId,
+            osmFile: osmOutput,
+            mbtilesFile: mbtilesOutput,
+          });
+        })
+        .catch(reject);
       });
 
       tilemakerProcess.on("error", reject);
