@@ -11,7 +11,8 @@ async function updateSymlinkAndRestart(mbtilesPath, onData) {
     ? process.env.TILE_SERVICES.split(",").map(s => s.trim())
     : [];
 
-  //Update the symlink 
+  /*Update the symlink to point to the new .mbtiles cuz my tile.service always points to the same file
+  you probly won't need it depending on how your tile.service is set up*/
   if (symlinkPath) {
     try {
       if (fs.existsSync(symlinkPath)) {
@@ -19,7 +20,7 @@ async function updateSymlinkAndRestart(mbtilesPath, onData) {
       }
 
       fs.symlinkSync(mbtilesPath, symlinkPath);
-      onData(`Symlink updated → ${symlinkPath}`, "stdout");
+      onData(`Symlink updated  ${symlinkPath}`, "stdout");
     } catch (err) {
       throw new Error(`Symlink update failed: ${err.message}`);
     }
@@ -69,7 +70,7 @@ export function runExport(params, onData) {
 
     const mbtilesDir = path.resolve(
       process.cwd(),
-      process.env.MBTILES_DIR || "../exports"
+      process.env.MBTILES_DIR && "../exports"
     );
 
     const osmOutput = path.join(exportsDir, `${jobId}.osm.pbf`);
