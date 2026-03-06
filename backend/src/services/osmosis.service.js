@@ -47,7 +47,6 @@ async function updateSymlinkAndRestart(mbtilesPath, onData) {
       });
     }
   }
-  await updateSymlinkAndRestart(mbtilesOutput, onData);
 }
 
 export function runExport(params, onData) {
